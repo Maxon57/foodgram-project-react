@@ -4,7 +4,9 @@ from rest_framework import serializers
 User = get_user_model()
 
 
-class UsersCreateSerializers(serializers.ModelSerializer):
+class UsersSerializer(serializers.ModelSerializer):
+    is_subscribed = serializers.SerializerMethodField()
+
     class Meta:
         model = User
         fields = (
@@ -13,6 +15,9 @@ class UsersCreateSerializers(serializers.ModelSerializer):
             'email',
             'first_name',
             'last_name',
-            'password'
+            'is_subscribed'
         )
+
+    def get_is_subscribed(self, obj):
+        return obj
 

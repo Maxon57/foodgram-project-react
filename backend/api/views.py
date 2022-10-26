@@ -1,11 +1,11 @@
 from django.contrib.auth import get_user_model
-from djoser.serializers import UserCreateSerializer
+from djoser.serializers import UserCreateSerializer, SetPasswordSerializer
 from rest_framework import mixins, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
-from api.serializers import UsersCreateSerializers
+from .serializers import UsersSerializer
 
 User = get_user_model()
 
@@ -15,35 +15,27 @@ class UsersViewSet(mixins.ListModelMixin,
                    mixins.RetrieveModelMixin,
                    GenericViewSet):
     queryset = User.objects.order_by('id').all()
-    permission_classes = [permissions.AllowAny]
-    # serializer_class = UsersCreateSerializers
 
     def get_serializer_class(self):
         if self.action == 'create':
             return UserCreateSerializer
-    #     if self.action == 'list':
-    #         return UsersSerializers
-    #     # elif self.action == 'retrieve':
-    #     #     return RetrieveUserSerializer
-    #     return self.serializer_class
+        if self.action == 'set_password':
+            return SetPasswordSerializer
+        return UsersSerializer
 
-    # def get_permissions(self):
-    #     if self.action == 'create':
-    #         self.permission_classes = [permissions.AllowAny]
-    #     elif self.action == 'list':
-    #         self.permission_classes = [permissions.IsAuthenticated]
-    #     elif self.action == 'retrieve':
-    #         self.permission_classes = [permissions.IsAuthenticated]
-    #     return super().get_permissions()
+    def get_permissions(self):
+        if self.action == 'retrieve':
+            self.permission_classes = [permissions.IsAuthenticated]
+        if self.action in ('list', 'create'):
+            self.permission_classes = [permissions.AllowAny]
+        return super().get_permissions()
 
     @action(['get'],
             detail=False,
             permission_classes=(permissions.IsAuthenticated,),
-            # filterset_class=[]
             )
     def me(self, request, *args, **kwargs):
-        # self.retrieve(request, *args, **kwargs)
-        serializer = UsersCreateSerializers(self.request.user)
+        serializer = self.get_serializer(self.request.user)
         return Response(serializer.data)
 
     @action(["post"], detail=False)
