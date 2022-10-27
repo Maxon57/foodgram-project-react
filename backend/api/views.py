@@ -5,7 +5,8 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
-from .serializers import UsersSerializer
+from recipes.models import Tag, Ingredient
+from .serializers import UsersSerializer, TagSerializer, IngredientSerializer
 
 User = get_user_model()
 
@@ -46,3 +47,17 @@ class UsersViewSet(mixins.ListModelMixin,
         self.request.user.set_password(serializer.data["new_password"])
         self.request.user.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class TagViewSet(mixins.ListModelMixin,
+                 mixins.RetrieveModelMixin,
+                 GenericViewSet):
+    serializer_class = TagSerializer()
+    queryset = Tag.objects.all()
+
+
+class IngredientViewSet(mixins.ListModelMixin,
+                        mixins.RetrieveModelMixin,
+                        GenericViewSet):
+    serializer_class = IngredientSerializer()
+    queryset = Ingredient.objects.all()
