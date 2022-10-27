@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.db import models
+from django.core import validators
 
 User = get_user_model()
 
@@ -13,7 +14,12 @@ class Tag(models.Model):
 class Ingredient(models.Model):
     name = models.CharField('Название продукта', max_length=150)
     measurement_unit = models.CharField('Единицы измерения', max_length=10)
-    amount = models.PositiveSmallIntegerField('Количество')
+    amount = models.PositiveSmallIntegerField(
+        'Количество',
+        validators=[
+            validators.MinValueValidator(1, 'Введите значение больше 0')
+        ]
+    )
 
 
 class Recipe(models.Model):
@@ -32,10 +38,19 @@ class Recipe(models.Model):
                                         through='RecipeIngredient',
                                         related_name='rec_ingredient'
                                         )
-    name = models.CharField('Название', max_length=150)
-    image = models.ImageField('Картинка', upload_to='')  # Доделать
+    name = models.CharField('Название', max_length=200)
+    image = models.ImageField('Картинка', upload_to='recipe/images/')
     text = models.TextField('Описание')
-    cooking_time = models.PositiveSmallIntegerField('Время приготовления')
+    cooking_time = models.PositiveSmallIntegerField(
+        'Время приготовления',
+        validators=[
+            validators.MinValueValidator(1, 'Введите значение больше 1')
+        ]
+    )
+    favorite = models.ManyToManyField(User,
+                                      through='FavoriteRecipe',
+                                      related_name='favorite_rec'
+                                      )
 
 
 class RecipeIngredient(models.Model):
@@ -49,3 +64,20 @@ class RecipeIngredient(models.Model):
                                    related_name='ingredient',
                                    blank=True,
                                    null=True)
+
+
+class FavoriteRecipe(models.Model):
+    """Избранное пользователя"""
+    user = models.ForeignKey(User,
+                             on_delete=models.CASCADE,
+                             related_name='user'
+                             )
+    recipe = models.ForeignKey(Recipe,
+                               on_delete=models.CASCADE,
+                               related_name='recipe'
+                               )
+
+
+class Purchases(FavoriteRecipe):
+    """Список покупок пользователя"""
+    pass
