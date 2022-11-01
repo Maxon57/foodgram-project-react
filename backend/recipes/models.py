@@ -63,7 +63,7 @@ class Recipe(models.Model):
     )
     tag = models.ManyToManyField(
         Tag,
-        related_name='recipe_tag',
+        # related_name='recipe_tag',
         verbose_name='Тег'
     )
     ingredient = models.ManyToManyField(
@@ -82,7 +82,7 @@ class Recipe(models.Model):
     cooking_time = models.PositiveSmallIntegerField(
         verbose_name='Время приготовления, мин.',
         validators=[
-            validators.MinValueValidator(1, 'Введите значение больше 1')
+            validators.MinValueValidator(1, message='Введите значение больше 1')
         ]
     )
     pub_date = models.DateTimeField(
@@ -116,6 +116,12 @@ class RecipeIngredient(models.Model):
         validators=[validators.MinValueValidator(1)],
         verbose_name='Количество ингредиента'
     )
+
+    # class Meta:
+    #     constraints = models.UniqueConstraint(
+    #         fields=('recipe', 'ingredient', 'amount'),
+    #         name='unique_recipe_ingredient_amount'
+    #     )
 
     def __str__(self):
         return f'{self.recipe}: {self.ingredient} - {self.amount}'

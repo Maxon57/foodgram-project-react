@@ -1,6 +1,6 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
-
+from django.shortcuts import get_object_or_404
 from api.serializers_fields import AmountField, Base64ImageField
 from recipes.models import Tag, Ingredient, Recipe, RecipeIngredient
 
@@ -31,14 +31,34 @@ class TagSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class IngredientViewSerializer(serializers.ModelSerializer):
+class IngredientSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ingredient
-        fields = '__all__'
+        fields = (
+            'id',
+            'name',
+            'measurement_unit'
+        )
 
 
-class IngredientSerializer(serializers.ModelSerializer):
-    id = serializers.IntegerField()
+class RecipeIngredientCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RecipeIngredient
+        fields = (
+            'id',
+            'amount'
+        )
+        extra_kwargs = {'id': {'read_only': False}}
+
+    def validate_id(self, value):
+        if not Ingredient.objects.filter(pk=value).exists():
+            raise serializers.ValidationError(
+                'Такого ингредиента нет!'
+            )
+        return value
+
+
+class RecipeIngredientViewSerializer(serializers.ModelSerializer):
     amount = AmountField(
         source='ingredient_recipe',
         queryset=RecipeIngredient.objects.all()
@@ -50,18 +70,14 @@ class IngredientSerializer(serializers.ModelSerializer):
             'id',
             'name',
             'measurement_unit',
-            'amount'
-        )
-        read_only_fields = (
-            'name',
-            'measurement_unit'
+            'amount',
         )
 
 
 class RecipeViewSerializer(serializers.ModelSerializer):
     tag = TagSerializer(many=True, read_only=True)
     author = UsersSerializer()
-    ingredient = IngredientSerializer(many=True, read_only=True)
+    ingredient = RecipeIngredientViewSerializer(many=True)
 
     # is_favorited = serializers.SerializerMethodField(default=True)
     # is_in_shopping_cart = serializers.SerializerMethodField(default=True)
@@ -83,16 +99,14 @@ class RecipeViewSerializer(serializers.ModelSerializer):
 
 
 class RecipeCreateSerializer(serializers.ModelSerializer):
-    ingredient = IngredientSerializer(
-        many=True,
-        required=True
+    ingredient = RecipeIngredientCreateSerializer(
+        many=True
     )
-    tag = serializers.PrimaryKeyRelatedField(
-        many=True,
-        queryset=Tag.objects.all(),
-        required=True
+    tag = serializers.ListField(
+        child=serializers.PrimaryKeyRelatedField(queryset=Tag.objects.all()),
+        allow_empty=False,
     )
-    image = Base64ImageField(required=True)
+    image = Base64ImageField()
 
     class Meta:
         model = Recipe
@@ -102,20 +116,22 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         )
 
     def create(self, validated_data):
-        print(validated_data)
-        ingredients = validated_data.pop('ingredient')
-        tags = validated_data.pop('tag')
-        # print(ingredients)
-        # print(tags)
+        ingredients, tags = (
+            validated_data.pop('ingredient'), validated_data.pop('tag')
+        )
 
         recipe = Recipe.objects.create(**validated_data)
 
         for item in ingredients:
-            print(item)
-            RecipeIngredient.objects.create(
+            RecipeIngredient.objects.get_or_create(
                 recipe=recipe,
-
+                ingredient=get_object_or_404(Ingredient, pk=item['id']),
+                amount=item['amount']
             )
-
-
+        recipe.tag.add(*tags)
         return recipe
+
+    def update(self, instance, validated_data):
+        print(instance)
+        print(validated_data)
+        return self.update(instance, validated_data)
