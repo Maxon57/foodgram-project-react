@@ -8,6 +8,9 @@ class AmountField(serializers.RelatedField):
     def to_representation(self, value):
         return value.first().amount
 
+    def to_internal_value(self, data):
+        return data
+
 
 class Base64ImageField(serializers.ImageField):
     def to_internal_value(self, data):

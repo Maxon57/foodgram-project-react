@@ -132,6 +132,6 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         return recipe
 
     def update(self, instance, validated_data):
-        print(instance)
-        print(validated_data)
-        return self.update(instance, validated_data)
+        print(instance.__dict__)
+        print(updata_or_create)
+        return instance
