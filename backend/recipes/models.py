@@ -112,8 +112,12 @@ class RecipeIngredient(models.Model):
         related_name='ingredient_recipe',
     )
     amount = models.PositiveSmallIntegerField(
-        default=1,
-        validators=[validators.MinValueValidator(1)],
+        validators=[
+            validators.MinValueValidator(
+                1,
+                message='Убедитесь, что это значение больше либо равно 1.'
+            )
+        ],
         verbose_name='Количество ингредиента'
     )
 

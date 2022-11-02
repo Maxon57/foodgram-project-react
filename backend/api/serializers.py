@@ -50,12 +50,12 @@ class RecipeIngredientCreateSerializer(serializers.ModelSerializer):
         )
         extra_kwargs = {'id': {'read_only': False}}
 
-    def validate_id(self, value):
-        if not Ingredient.objects.filter(pk=value).exists():
-            raise serializers.ValidationError(
-                'Такого ингредиента нет!'
-            )
-        return value
+    # def validate_id(self, value):
+    #     if not Ingredient.objects.filter(pk=value).exists():
+    #         raise serializers.ValidationError(
+    #             'Такого ингредиента нет!'
+    #         )
+    #     return value
 
 
 class RecipeIngredientViewSerializer(serializers.ModelSerializer):
@@ -115,23 +115,30 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
             'author',
         )
 
-    def create(self, validated_data):
+    def recipe_create_or_update(self, instance, validated_data):
         ingredients, tags = (
             validated_data.pop('ingredient'), validated_data.pop('tag')
         )
-
-        recipe = Recipe.objects.create(**validated_data)
-
         for item in ingredients:
-            RecipeIngredient.objects.get_or_create(
-                recipe=recipe,
+            cur_obj, _ = RecipeIngredient.objects.get_or_create(
+                recipe=instance,
                 ingredient=get_object_or_404(Ingredient, pk=item['id']),
                 amount=item['amount']
             )
-        recipe.tag.add(*tags)
-        return recipe
+        for item in tags:
+            instance.tag.add(item)
+        return instance
+
+    def create(self, validated_data):
+        raw_data = {
+            'ingredient': validated_data.pop('ingredient'),
+            'tag': validated_data.pop('tag')
+        }
+        recipe = Recipe.objects.create(**validated_data)
+        return self.recipe_create_or_update(recipe, raw_data)
 
     def update(self, instance, validated_data):
-        print(instance.__dict__)
-        print(updata_or_create)
-        return instance
+        instance.ingredient.clear()
+        instance.tag.clear()
+        instance = self.recipe_create_or_update(instance, validated_data)
+        return super().update(instance, validated_data)

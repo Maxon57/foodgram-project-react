@@ -66,6 +66,7 @@ class IngredientViewSet(mixins.ListModelMixin,
 
 class RecipeViewSet(ModelViewSet):
     queryset = Recipe.objects.all()
+    http_method_names = ['get', 'post', 'patch', 'delete', 'head']
 
     def get_serializer_class(self):
         if self.action in ('create', 'partial_update'):
@@ -78,6 +79,7 @@ class RecipeViewSet(ModelViewSet):
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        serializer.save()
         self.perform_create(serializer)
         serializer = RecipeViewSerializer(
             instance=serializer.instance,
@@ -89,17 +91,18 @@ class RecipeViewSet(ModelViewSet):
             headers=self.get_success_headers(serializer.data)
         )
 
-    # def update(self, request, *args, **kwargs):
-    #     partial = kwargs.pop('partial', False)
-    #     instance = self.get_object()
-    #     serializer = self.get_serializer(instance, data=request.data, partial=partial)
-    #     serializer.is_valid(raise_exception=True)
-    #     serializer = RecipeViewSerializer(
-    #         instance=serializer.instance,
-    #         context={'request': self.request}
-    #     )
-    #     return Response(
-    #         data=serializer.data,
-    #         status=status.HTTP_200_OK,
-    #         headers=self.get_success_headers(serializer.data)
-    #     )
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        serializer = RecipeViewSerializer(
+            instance=serializer.instance,
+            context={'request': self.request}
+        )
+        return Response(
+            data=serializer.data,
+            status=status.HTTP_200_OK,
+            headers=self.get_success_headers(serializer.data)
+        )
