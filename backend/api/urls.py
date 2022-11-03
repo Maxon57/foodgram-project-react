@@ -5,10 +5,10 @@ from rest_framework import routers
 from api.views import UsersViewSet, TagViewSet, IngredientViewSet, RecipeViewSet
 
 router = routers.DefaultRouter()
-router.register(r'users', UsersViewSet)
+router.register(r'users', UsersViewSet, basename='users')
 router.register(r'tags', TagViewSet)
 router.register(r'ingredients', IngredientViewSet)
-router.register(r'recipes', RecipeViewSet)
+router.register(r'recipes', RecipeViewSet, basename='recipes')
 
 auth_urlpatterns = [
     re_path(

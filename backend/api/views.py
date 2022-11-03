@@ -7,7 +7,7 @@ from rest_framework.viewsets import GenericViewSet, ModelViewSet
 
 from recipes.models import Tag, Ingredient, Recipe
 from .serializers import UsersSerializer, TagSerializer, \
-    RecipeViewSerializer, RecipeCreateSerializer, IngredientSerializer
+    RecipeViewSerializer, RecipeCreateSerializer, IngredientSerializer, FollowSerializer
 
 User = get_user_model()
 
@@ -16,13 +16,19 @@ class UsersViewSet(mixins.ListModelMixin,
                    mixins.CreateModelMixin,
                    mixins.RetrieveModelMixin,
                    GenericViewSet):
-    queryset = User.objects.order_by('id').all()
+
+    def get_queryset(self):
+        if self.action == 'subscriptions':
+            return self.request.user.follower.all()
+        return User.objects.order_by('id').all()
 
     def get_serializer_class(self):
         if self.action == 'create':
             return UserCreateSerializer
         if self.action == 'set_password':
             return SetPasswordSerializer
+        if self.action == 'subscriptions':
+            return FollowSerializer
         return UsersSerializer
 
     def get_permissions(self):
@@ -48,6 +54,16 @@ class UsersViewSet(mixins.ListModelMixin,
         self.request.user.set_password(serializer.data["new_password"])
         self.request.user.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(methods=['GET'], detail=False)
+    def subscriptions(self, request):
+        serializer = self.get_serializer(self.get_queryset())
+        print(serializer.data)
+        return Response(data=serializer.data, status=status.HTTP_200_OK)
+
+    @action(methods=['POST', 'DELETE'], detail=True)
+    def subscribe(self):
+        pass
 
 
 class TagViewSet(mixins.ListModelMixin,
@@ -106,3 +122,16 @@ class RecipeViewSet(ModelViewSet):
             status=status.HTTP_200_OK,
             headers=self.get_success_headers(serializer.data)
         )
+
+    @action(methods=['GET'], detail=False)
+    def download_shopping_cart(self):
+        pass
+
+    @action(methods=['POST', 'DELETE'], detail=True)
+    def shopping_cart(self):
+        pass
+
+    @action(methods=['POST', 'DELETE'], detail=True)
+    def favorite(self):
+        pass
+

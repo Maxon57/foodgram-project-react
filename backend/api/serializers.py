@@ -22,7 +22,26 @@ class UsersSerializer(serializers.ModelSerializer):
         )
 
     def get_is_subscribed(self, obj):
-        return 'is_subscribed'
+        user_me = self.context['request'].user
+        return user_me.follower.filter(author=obj).exists()
+
+
+class FollowSerializer(UsersSerializer):
+    recipes_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ('id',
+            'username',
+            'email',
+            'first_name',
+            'last_name',
+            'is_subscribed','recipes_count',)
+
+    def get_recipes_count(self, obj):
+        print(obj)
+        return obj
+
 
 
 class TagSerializer(serializers.ModelSerializer):
