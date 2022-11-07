@@ -1,7 +1,7 @@
 import json
 import os
 from inspect import getmembers, isclass
-
+from typing import List
 import django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'foodgram.settings')
 django.setup()
@@ -15,7 +15,7 @@ def drop_data():
         i[1].objects.all().delete()
 
 
-def open_file_json(file: str) -> list[dict]:
+def open_file_json(file: str) -> List[dict]:
     path = os.path.join('static/data/', file + '.json')
     try:
         with open(path, 'r', encoding='UTF-8') as f:

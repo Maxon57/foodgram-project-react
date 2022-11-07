@@ -1,16 +1,23 @@
-from django.db import IntegrityError
 from django.contrib.auth import get_user_model
+from django.shortcuts import get_object_or_404
 from djoser.serializers import UserCreateSerializer, SetPasswordSerializer
 from rest_framework import mixins, status, permissions
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ModelViewSet
-from django.db.models import Count
-from django.shortcuts import get_object_or_404
+
 from accounts.models import Follow
-from recipes.models import Tag, Ingredient, Recipe
-from .serializers import UsersSerializer, TagSerializer, \
-    RecipeViewSerializer, RecipeCreateSerializer, IngredientSerializer, FollowSerializer, FollowPostSerializer
+from recipes.models import Tag, Ingredient, Recipe, Favorite
+from .serializers import (
+    UsersSerializer,
+    TagSerializer,
+    RecipeViewSerializer,
+    RecipeCreateSerializer,
+    IngredientSerializer,
+    FollowSerializer,
+    FollowPostSerializer, FavoriteSerializer
+)
 
 User = get_user_model()
 
@@ -42,8 +49,8 @@ class UsersViewSet(mixins.ListModelMixin,
     def get_permissions(self):
         if self.action == 'retrieve':
             self.permission_classes = [permissions.IsAuthenticated]
-        # if self.action in ('list', 'create'):
-        #     self.permission_classes = [permissions.AllowAny]
+        if self.action == 'subscribe':
+            self.permission_classes = [permissions.IsAuthenticated]
         return super().get_permissions()
 
     @action(['get'],
@@ -68,26 +75,35 @@ class UsersViewSet(mixins.ListModelMixin,
         serializer = self.get_serializer(self.get_queryset, many=True)
         return Response(data=serializer.data, status=status.HTTP_200_OK)
 
-    @action(methods=['POST', 'DELETE'], detail=True)
+    @action(methods=['POST'], detail=True)
     def subscribe(self, request, *args, **kwargs):
         data = {
-            'user': request.user.pk,
-            'author': self.get_object().pk
+            'author': self.get_object().pk,
+            'user': self.request.user.pk,
         }
-        if request.method == 'DELETE':
-            pass
-        serializer = self.get_serializer(data=data)
+        serializer = FollowPostSerializer(
+            data=data,
+            context={'request': request}
+        )
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        serializer = FollowSerializer(
-            data=serializer.data,
-            context={'request': self.request}
-        )
         return Response(
             data=serializer.data,
-            status=status.HTTP_201_CREATED,
-            headers=self.get_success_headers(serializer.data)
+            status=status.HTTP_201_CREATED
         )
+
+    @subscribe.mapping.delete
+    def subscribe_delete(self, request, pk):
+        follow = Follow.objects.filter(
+            author=self.get_object(),
+            user=self.request.user
+        )
+        if not follow:
+            raise ValidationError(
+                'Вы не были подписаны на автора'
+            )
+        follow.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class TagViewSet(mixins.ListModelMixin,
@@ -111,6 +127,8 @@ class RecipeViewSet(ModelViewSet):
     def get_serializer_class(self):
         if self.action in ('create', 'partial_update'):
             return RecipeCreateSerializer
+        if self.action == 'favorite':
+            return FavoriteSerializer
         return RecipeViewSerializer
 
     def perform_create(self, serializer):
@@ -147,6 +165,9 @@ class RecipeViewSet(ModelViewSet):
             headers=self.get_success_headers(serializer.data)
         )
 
+    def get_recipe(self):
+        return get_object_or_404(Recipe, pk=self.kwargs['pk'])
+
     @action(methods=['GET'], detail=False)
     def download_shopping_cart(self):
         pass
@@ -155,6 +176,32 @@ class RecipeViewSet(ModelViewSet):
     def shopping_cart(self):
         pass
 
-    @action(methods=['POST', 'DELETE'], detail=True)
-    def favorite(self):
-        pass
+    @action(methods=['POST'], detail=True)
+    def favorite(self, request, *args, **kwargs):
+        data = {
+            'user': self.get_recipe().author.pk,
+            'recipe': self.get_recipe().pk
+        }
+        serializer = self.get_serializer(
+            data=data
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(
+            data=serializer.data,
+            status=status.HTTP_201_CREATED
+        )
+
+    @favorite.mapping.delete
+    def favorite_delete(self, request, pk):
+        favorite = Favorite.objects.filter(
+            user=self.get_recipe().author,
+            recipe=self.get_recipe()
+        )
+        if not favorite:
+            raise ValidationError(
+                'Рецепта в избранном нет!'
+            )
+        favorite.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+

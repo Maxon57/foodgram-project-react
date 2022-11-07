@@ -9,18 +9,18 @@ User = get_user_model()
 
 class Tag(models.Model):
     name = models.CharField(
-        'Название',
+        verbose_name='Название',
         max_length=150,
         unique=True
     )
     color = models.CharField(
-        'Цвет в HEX формате',
+        verbose_name='Цвет в HEX формате',
         max_length=150,
         unique=True,
         validators=[HEXColorValidator]
     )
     slug = models.SlugField(
-        'Слаг',
+        verbose_name='Слаг',
         max_length=50,
         unique=True
     )
@@ -36,12 +36,12 @@ class Tag(models.Model):
 
 class Ingredient(models.Model):
     name = models.CharField(
-        'Название продукта',
+        verbose_name='Название продукта',
         max_length=150,
         db_index=True
     )
     measurement_unit = models.CharField(
-        'Единицы измерения',
+        verbose_name='Единицы измерения',
         max_length=10
     )
 
@@ -63,7 +63,7 @@ class Recipe(models.Model):
     )
     tag = models.ManyToManyField(
         Tag,
-        # related_name='recipe_tag',
+        related_name='recipe_tag',
         verbose_name='Тег'
     )
     ingredient = models.ManyToManyField(
@@ -71,11 +71,11 @@ class Recipe(models.Model):
         through='RecipeIngredient',
     )
     name = models.CharField(
-        'Название',
+        verbose_name='Название',
         max_length=200
     )
     image = models.ImageField(
-        'Картинка',
+        verbose_name='Картинка',
         upload_to='media/recipe/'
     )
     text = models.TextField('Описание')
@@ -86,7 +86,7 @@ class Recipe(models.Model):
         ]
     )
     pub_date = models.DateTimeField(
-        'Время создания',
+        verbose_name='Время создания',
         auto_now_add=True
     )
 
@@ -120,12 +120,6 @@ class RecipeIngredient(models.Model):
         ],
         verbose_name='Количество ингредиента'
     )
-
-    # class Meta:
-    #     constraints = models.UniqueConstraint(
-    #         fields=('recipe', 'ingredient', 'amount'),
-    #         name='unique_recipe_ingredient_amount'
-    #     )
 
     def __str__(self):
         return f'{self.recipe}: {self.ingredient} - {self.amount}'

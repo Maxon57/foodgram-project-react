@@ -4,7 +4,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework.validators import UniqueTogetherValidator
 from accounts.models import Follow
 from api.serializers_fields import AmountField, Base64ImageField
-from recipes.models import Tag, Ingredient, Recipe, RecipeIngredient
+from recipes.models import Tag, Ingredient, Recipe, RecipeIngredient, Favorite
 
 User = get_user_model()
 
@@ -159,11 +159,10 @@ class RecipeSerializer(serializers.ModelSerializer):
 
 
 class FollowSerializer(UsersSerializer):
-    recipes_count = serializers.SerializerMethodField(read_only=True)
+    recipes_count = serializers.SerializerMethodField()
     recipes = RecipeSerializer(
         source='recipe_author',
         many=True,
-        read_only=True
     )
 
     class Meta:
@@ -190,10 +189,48 @@ class FollowPostSerializer(serializers.ModelSerializer):
             'author',
             'user'
         )
-        validators = [
-            UniqueTogetherValidator(
-                queryset=Follow.objects.all(),
-                fields=('author', 'user')
+
+    def validate(self, data):
+        user_me = self.context['request'].user
+        if user_me == data['author']:
+            raise serializers.ValidationError(
+                'Нельзя подписываться на самого себя!'
             )
-        ]
+        if Follow.objects.filter(
+                author=data['author'],
+                user=user_me):
+            raise serializers.ValidationError(
+                f'Вы подписаны на автора {data["author"]}!'
+            )
+        return data
+
+    def to_representation(self, instance):
+        return FollowSerializer(
+            instance.author,
+            context={'request': self.context.get('request')}
+        ).data
+
+
+class FavoriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Favorite
+        fields = (
+            'user',
+            'recipe'
+        )
+
+    def validate(self, data):
+        if Favorite.objects.filter(
+            user=data['user'],
+            recipe=data['recipe']
+        ):
+            raise serializers.ValidationError(
+                f'Рецепт - {data["recipe"]} уже есть в избранном'
+            )
+        return data
+
+    def to_representation(self, instance):
+        return RecipeSerializer(instance.recipe).data
+
+
 
