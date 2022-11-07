@@ -1,13 +1,16 @@
+from django.db import IntegrityError
 from django.contrib.auth import get_user_model
 from djoser.serializers import UserCreateSerializer, SetPasswordSerializer
 from rest_framework import mixins, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ModelViewSet
-
+from django.db.models import Count
+from django.shortcuts import get_object_or_404
+from accounts.models import Follow
 from recipes.models import Tag, Ingredient, Recipe
 from .serializers import UsersSerializer, TagSerializer, \
-    RecipeViewSerializer, RecipeCreateSerializer, IngredientSerializer, FollowSerializer
+    RecipeViewSerializer, RecipeCreateSerializer, IngredientSerializer, FollowSerializer, FollowPostSerializer
 
 User = get_user_model()
 
@@ -19,7 +22,10 @@ class UsersViewSet(mixins.ListModelMixin,
 
     def get_queryset(self):
         if self.action == 'subscriptions':
-            return self.request.user.follower.all()
+            return User.objects.filter(
+                pk__in=
+                [item.author.pk for item in self.request.user.follower.all()]
+            )
         return User.objects.order_by('id').all()
 
     def get_serializer_class(self):
@@ -29,6 +35,8 @@ class UsersViewSet(mixins.ListModelMixin,
             return SetPasswordSerializer
         if self.action == 'subscriptions':
             return FollowSerializer
+        if self.action == 'subscribe':
+            return FollowPostSerializer
         return UsersSerializer
 
     def get_permissions(self):
@@ -57,13 +65,29 @@ class UsersViewSet(mixins.ListModelMixin,
 
     @action(methods=['GET'], detail=False)
     def subscriptions(self, request):
-        serializer = self.get_serializer(self.get_queryset())
-        print(serializer.data)
+        serializer = self.get_serializer(self.get_queryset, many=True)
         return Response(data=serializer.data, status=status.HTTP_200_OK)
 
     @action(methods=['POST', 'DELETE'], detail=True)
-    def subscribe(self):
-        pass
+    def subscribe(self, request, *args, **kwargs):
+        data = {
+            'user': request.user.pk,
+            'author': self.get_object().pk
+        }
+        if request.method == 'DELETE':
+            pass
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        serializer = FollowSerializer(
+            data=serializer.data,
+            context={'request': self.request}
+        )
+        return Response(
+            data=serializer.data,
+            status=status.HTTP_201_CREATED,
+            headers=self.get_success_headers(serializer.data)
+        )
 
 
 class TagViewSet(mixins.ListModelMixin,
@@ -134,4 +158,3 @@ class RecipeViewSet(ModelViewSet):
     @action(methods=['POST', 'DELETE'], detail=True)
     def favorite(self):
         pass
-

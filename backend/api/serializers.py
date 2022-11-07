@@ -1,6 +1,8 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from django.shortcuts import get_object_or_404
+from rest_framework.validators import UniqueTogetherValidator
+from accounts.models import Follow
 from api.serializers_fields import AmountField, Base64ImageField
 from recipes.models import Tag, Ingredient, Recipe, RecipeIngredient
 
@@ -24,24 +26,6 @@ class UsersSerializer(serializers.ModelSerializer):
     def get_is_subscribed(self, obj):
         user_me = self.context['request'].user
         return user_me.follower.filter(author=obj).exists()
-
-
-class FollowSerializer(UsersSerializer):
-    recipes_count = serializers.SerializerMethodField()
-
-    class Meta:
-        model = User
-        fields = ('id',
-            'username',
-            'email',
-            'first_name',
-            'last_name',
-            'is_subscribed','recipes_count',)
-
-    def get_recipes_count(self, obj):
-        print(obj)
-        return obj
-
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -161,3 +145,55 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         instance.tag.clear()
         instance = self.recipe_create_or_update(instance, validated_data)
         return super().update(instance, validated_data)
+
+
+class RecipeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Recipe
+        fields = (
+            'id',
+            'name',
+            'image',
+            'cooking_time'
+        )
+
+
+class FollowSerializer(UsersSerializer):
+    recipes_count = serializers.SerializerMethodField(read_only=True)
+    recipes = RecipeSerializer(
+        source='recipe_author',
+        many=True,
+        read_only=True
+    )
+
+    class Meta:
+        model = User
+        fields = (
+            'id',
+            'username',
+            'email',
+            'first_name',
+            'last_name',
+            'is_subscribed',
+            'recipes',
+            'recipes_count'
+        )
+
+    def get_recipes_count(self, obj):
+        return obj.recipe_author.count()
+
+
+class FollowPostSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Follow
+        fields = (
+            'author',
+            'user'
+        )
+        validators = [
+            UniqueTogetherValidator(
+                queryset=Follow.objects.all(),
+                fields=('author', 'user')
+            )
+        ]
+
