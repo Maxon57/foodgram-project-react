@@ -4,11 +4,20 @@ from djoser.serializers import UserCreateSerializer, SetPasswordSerializer
 from rest_framework import mixins, status, permissions
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ModelViewSet
 
 from accounts.models import Follow
-from recipes.models import Tag, Ingredient, Recipe, Favorite
+from recipes.models import (
+    Tag,
+    Ingredient,
+    Recipe,
+    Favorite,
+    Purchase
+)
+from .filters import CustomSearchFilter
 from .serializers import (
     UsersSerializer,
     TagSerializer,
@@ -16,7 +25,7 @@ from .serializers import (
     RecipeCreateSerializer,
     IngredientSerializer,
     FollowSerializer,
-    FollowPostSerializer, FavoriteSerializer
+    FollowPostSerializer, FavoriteSerializer, PurchaseSerializer
 )
 
 User = get_user_model()
@@ -111,6 +120,7 @@ class TagViewSet(mixins.ListModelMixin,
                  GenericViewSet):
     serializer_class = TagSerializer
     queryset = Tag.objects.all()
+    pagination_class = None
 
 
 class IngredientViewSet(mixins.ListModelMixin,
@@ -118,17 +128,24 @@ class IngredientViewSet(mixins.ListModelMixin,
                         GenericViewSet):
     serializer_class = IngredientSerializer
     queryset = Ingredient.objects.all()
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['name']
+    pagination_class = None
 
 
 class RecipeViewSet(ModelViewSet):
     queryset = Recipe.objects.all()
     http_method_names = ['get', 'post', 'patch', 'delete', 'head']
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = CustomSearchFilter
 
     def get_serializer_class(self):
         if self.action in ('create', 'partial_update'):
             return RecipeCreateSerializer
         if self.action == 'favorite':
             return FavoriteSerializer
+        if self.action == 'shopping_cart':
+            return PurchaseSerializer
         return RecipeViewSerializer
 
     def perform_create(self, serializer):
@@ -137,8 +154,8 @@ class RecipeViewSet(ModelViewSet):
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
         self.perform_create(serializer)
+        serializer.save()
         serializer = RecipeViewSerializer(
             instance=serializer.instance,
             context={'request': self.request}
@@ -152,7 +169,11 @@ class RecipeViewSet(ModelViewSet):
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer = self.get_serializer(
+            instance,
+            data=request.data,
+            partial=partial
+        )
         serializer.is_valid(raise_exception=True)
         serializer.save()
         serializer = RecipeViewSerializer(
@@ -172,14 +193,27 @@ class RecipeViewSet(ModelViewSet):
     def download_shopping_cart(self):
         pass
 
-    @action(methods=['POST', 'DELETE'], detail=True)
-    def shopping_cart(self):
-        pass
+    @action(methods=['POST'], detail=True)
+    def shopping_cart(self, request, *args, **kwargs):
+        return self.favorite(request, *args, **kwargs)
+
+    @shopping_cart.mapping.delete
+    def shopping_cart_delete(self, request, pk):
+        purchase = Purchase.objects.filter(
+            user=request.user.pk,
+            recipe=self.get_recipe()
+        )
+        if not purchase:
+            raise ValidationError(
+                'Рецепта в спске покупок нет!'
+            )
+        purchase.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(methods=['POST'], detail=True)
     def favorite(self, request, *args, **kwargs):
         data = {
-            'user': self.get_recipe().author.pk,
+            'user': request.user.pk,
             'recipe': self.get_recipe().pk
         }
         serializer = self.get_serializer(
@@ -195,7 +229,7 @@ class RecipeViewSet(ModelViewSet):
     @favorite.mapping.delete
     def favorite_delete(self, request, pk):
         favorite = Favorite.objects.filter(
-            user=self.get_recipe().author,
+            user=request.user.pk,
             recipe=self.get_recipe()
         )
         if not favorite:
@@ -204,4 +238,3 @@ class RecipeViewSet(ModelViewSet):
             )
         favorite.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
-

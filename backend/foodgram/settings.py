@@ -8,7 +8,7 @@ SECRET_KEY = 'django-insecure-7+^sikq9#ls7va5q$!@6l#&7i#pw!k1q2e!ax1&ws=gmucmqw=
 
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -18,7 +18,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'corsheaders',
+    'django_filters',
     'rest_framework.authtoken',
     'drf_yasg',
     'djoser',
@@ -30,7 +30,6 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -58,10 +57,20 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'foodgram.wsgi.application'
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': os.getenv('DB_ENGINE', default='django.db.backends.postgresql'),
+#         'NAME': os.getenv('DB_NAME', default='default'),
+#         'USER': os.getenv('POSTGRES_USER', default='default'),
+#         'PASSWORD': os.getenv('POSTGRES_PASSWORD', default='default'),
+#         'HOST': os.getenv('DB_HOST', default='default'),
+#         'PORT': os.getenv('DB_PORT', default='default')
+#     }
+# }
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
     }
 }
 
@@ -97,9 +106,6 @@ STATICFILES_DIRS = (os.path.join(BASE_DIR, 'static/'),)
 MEDIA_URL = 'media/'
 MEDIA_ROOT = (os.path.join(BASE_DIR, 'media'))
 
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REST_FRAMEWORK = {
@@ -111,14 +117,10 @@ REST_FRAMEWORK = {
     # 'DEFAULT_PERMISSION_CLASSES': [
     #     'rest_framework.permissions.IsAuthenticated',
     # ],
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 10
+    'DEFAULT_PAGINATION_CLASS': 'api.pagination.CustomPagination',
+    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend']
 }
 
 EMAIL_LENGTH = 254
 NAME_LENGTH = 150
-
-CORS_URLS_REGEX = r'^/api/.*$'
-CORS_ALLOWED_ORIGINS = [
-    'http://localhost:80',
-]
+PAGE_SIZE = 6
