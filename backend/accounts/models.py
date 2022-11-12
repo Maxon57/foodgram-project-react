@@ -6,7 +6,6 @@ from .validators import UsernameValidator
 
 
 class User(AbstractUser):
-    """Кастомная модель User"""
     username_validator = UsernameValidator()
 
     username = models.CharField(
@@ -45,15 +44,16 @@ class User(AbstractUser):
 
 
 class Follow(models.Model):
-    """Класс определяет модель для подписок."""
-    user = models.ForeignKey(User,
-                             on_delete=models.CASCADE,
-                             related_name='follower'
-                             )
-    author = models.ForeignKey(User,
-                               on_delete=models.CASCADE,
-                               related_name='following'
-                               )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='follower'
+    )
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='following'
+    )
 
     class Meta:
         verbose_name = 'Подписка'

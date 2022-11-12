@@ -1,8 +1,6 @@
 from django.contrib.auth import get_user_model
-from django.db import models
 from django.core import validators
-
-from api.validators import HEXColorValidator
+from django.db import models
 
 User = get_user_model()
 
@@ -16,8 +14,7 @@ class Tag(models.Model):
     color = models.CharField(
         verbose_name='Цвет в HEX формате',
         max_length=150,
-        unique=True,
-        validators=[HEXColorValidator]
+        unique=True
     )
     slug = models.SlugField(
         verbose_name='Слаг',
@@ -61,12 +58,12 @@ class Recipe(models.Model):
         related_name='recipe_author',
         verbose_name='Автор'
     )
-    tag = models.ManyToManyField(
+    tags = models.ManyToManyField(
         Tag,
         related_name='recipe_tag',
         verbose_name='Тег'
     )
-    ingredient = models.ManyToManyField(
+    ingredients = models.ManyToManyField(
         Ingredient,
         through='RecipeIngredient',
     )
@@ -76,13 +73,16 @@ class Recipe(models.Model):
     )
     image = models.ImageField(
         verbose_name='Картинка',
-        upload_to='media/recipe/'
+        upload_to='recipe/'
     )
     text = models.TextField('Описание')
     cooking_time = models.PositiveSmallIntegerField(
         verbose_name='Время приготовления, мин.',
         validators=[
-            validators.MinValueValidator(1, message='Введите значение больше 1')
+            validators.MinValueValidator
+            (
+                1, message='Введите значение больше 1'
+             )
         ]
     )
     pub_date = models.DateTimeField(
@@ -121,12 +121,14 @@ class RecipeIngredient(models.Model):
         verbose_name='Количество ингредиента'
     )
 
+    class Meta:
+        db_table = 'RecipeIngredient'
+
     def __str__(self):
         return f'{self.recipe}: {self.ingredient} - {self.amount}'
 
 
 class Favorite(models.Model):
-    """Избранное пользователя"""
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -157,7 +159,6 @@ class Favorite(models.Model):
 
 
 class Purchase(models.Model):
-    """Список покупок пользователя"""
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,

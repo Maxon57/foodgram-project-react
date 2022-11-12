@@ -1,12 +1,7 @@
 from django.contrib import admin
 
-from .models import (
-    Tag,
-    Ingredient,
-    Recipe,
-    Purchase,
-    Favorite, RecipeIngredient
-)
+from .models import (Favorite, Ingredient, Purchase, Recipe, RecipeIngredient,
+                     Tag)
 
 
 class IngredientInlineAdmin(admin.StackedInline):
@@ -19,14 +14,18 @@ class IngredientInlineAdmin(admin.StackedInline):
 class RecipeAdmin(admin.ModelAdmin):
     list_display = [
         'name',
-        'author'
+        'author',
+        'get_count_favorite'
     ]
     list_filter = (
         'author__username',
         'name',
-        'tag__name'
+        'tags__name'
     )
     inlines = [IngredientInlineAdmin]
+
+    def get_count_favorite(self, obj):
+        return obj.favorite_recipe.count()
 
 
 class IngredientAdmin(admin.ModelAdmin):

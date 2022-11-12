@@ -1,32 +1,25 @@
 from django.contrib.auth import get_user_model
+from django.db.models import F, Sum
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
-from djoser.serializers import UserCreateSerializer, SetPasswordSerializer
-from rest_framework import mixins, status, permissions
+from django_filters.rest_framework import DjangoFilterBackend
+from djoser.serializers import SetPasswordSerializer, UserCreateSerializer
+from rest_framework import filters, mixins, permissions, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import filters
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ModelViewSet
 
 from accounts.models import Follow
-from recipes.models import (
-    Tag,
-    Ingredient,
-    Recipe,
-    Favorite,
-    Purchase
-)
-from .filters import CustomSearchFilter
-from .serializers import (
-    UsersSerializer,
-    TagSerializer,
-    RecipeViewSerializer,
-    RecipeCreateSerializer,
-    IngredientSerializer,
-    FollowSerializer,
-    FollowPostSerializer, FavoriteSerializer, PurchaseSerializer
-)
+from recipes.models import (Favorite, Ingredient, Purchase, Recipe,
+                            RecipeIngredient, Tag)
+
+from .filters import RecipeFilter
+from .permissions import CustomerAccessPermission
+from .serializers import (FavoriteSerializer, FollowPostSerializer,
+                          FollowSerializer, IngredientSerializer,
+                          PurchaseSerializer, RecipeCreateSerializer,
+                          RecipeViewSerializer, TagSerializer, UsersSerializer)
 
 User = get_user_model()
 
@@ -35,12 +28,13 @@ class UsersViewSet(mixins.ListModelMixin,
                    mixins.CreateModelMixin,
                    mixins.RetrieveModelMixin,
                    GenericViewSet):
+    filter_backends = [DjangoFilterBackend]
 
     def get_queryset(self):
         if self.action == 'subscriptions':
+            subscriptions = self.request.user.follower.all()
             return User.objects.filter(
-                pk__in=
-                [item.author.pk for item in self.request.user.follower.all()]
+                pk__in=[item.author.pk for item in subscriptions]
             )
         return User.objects.order_by('id').all()
 
@@ -56,16 +50,17 @@ class UsersViewSet(mixins.ListModelMixin,
         return UsersSerializer
 
     def get_permissions(self):
-        if self.action == 'retrieve':
-            self.permission_classes = [permissions.IsAuthenticated]
-        if self.action == 'subscribe':
+        if self.action in (
+                'retrieve',
+                'me',
+                'set_password',
+                'subscribe',
+                'subscriptions'
+        ):
             self.permission_classes = [permissions.IsAuthenticated]
         return super().get_permissions()
 
-    @action(['get'],
-            detail=False,
-            permission_classes=(permissions.IsAuthenticated,),
-            )
+    @action(['get'], detail=False)
     def me(self, request, *args, **kwargs):
         serializer = self.get_serializer(self.request.user)
         return Response(serializer.data)
@@ -80,9 +75,9 @@ class UsersViewSet(mixins.ListModelMixin,
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(methods=['GET'], detail=False)
-    def subscriptions(self, request):
-        serializer = self.get_serializer(self.get_queryset, many=True)
-        return Response(data=serializer.data, status=status.HTTP_200_OK)
+    def subscriptions(self, request, *args, **kwargs):
+        serializer = self.get_serializer(self.get_queryset(), many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(methods=['POST'], detail=True)
     def subscribe(self, request, *args, **kwargs):
@@ -137,7 +132,7 @@ class RecipeViewSet(ModelViewSet):
     queryset = Recipe.objects.all()
     http_method_names = ['get', 'post', 'patch', 'delete', 'head']
     filter_backends = [DjangoFilterBackend]
-    filterset_class = CustomSearchFilter
+    filterset_class = RecipeFilter
 
     def get_serializer_class(self):
         if self.action in ('create', 'partial_update'):
@@ -147,6 +142,18 @@ class RecipeViewSet(ModelViewSet):
         if self.action == 'shopping_cart':
             return PurchaseSerializer
         return RecipeViewSerializer
+
+    def get_permissions(self):
+        if self.action in (
+                'create',
+                'download_shopping_cart',
+                'shopping_cart',
+                'favorite'
+        ):
+            self.permission_classes = [permissions.IsAuthenticated]
+        if self.action in ('partial_update', 'destroy'):
+            self.permission_classes = [CustomerAccessPermission]
+        return super().get_permissions()
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
@@ -190,8 +197,28 @@ class RecipeViewSet(ModelViewSet):
         return get_object_or_404(Recipe, pk=self.kwargs['pk'])
 
     @action(methods=['GET'], detail=False)
-    def download_shopping_cart(self):
-        pass
+    def download_shopping_cart(self, request):
+        ingredients = RecipeIngredient.objects.filter(
+            recipe__purchase_recipe__user=request.user
+        ).values(
+            name=F('ingredients__name'),
+            measurement_unit=F('ingredients__measurement_unit')
+        ).annotate(amount=Sum('amount'))
+
+        shopping_list = 'Игредиенты:\n\n'
+        shopping_list += '\n'.join([
+            f' - {ingredient["name"]}'
+            f' - ({ingredient["measurement_unit"]})'
+            f' - {ingredient["amount"]}'
+            for ingredient in ingredients
+        ])
+        response = HttpResponse(
+            shopping_list,
+            content_type='text/plain'
+        )
+        filename = f'{self.request.user.username}_shopping_list.txt'
+        response['Content-Disposition'] = f'attachment; filename={filename}'
+        return response
 
     @action(methods=['POST'], detail=True)
     def shopping_cart(self, request, *args, **kwargs):

@@ -2,7 +2,9 @@ import json
 import os
 from inspect import getmembers, isclass
 from typing import List
+
 import django
+
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'foodgram.settings')
 django.setup()
 from recipes import models
