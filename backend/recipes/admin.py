@@ -1,10 +1,20 @@
 from django.contrib import admin
 
-from .models import (Favorite, Ingredient, Purchase, Recipe, RecipeIngredient,
-                     Tag)
+from .models import (
+    Favorite,
+    Ingredient,
+    Purchase,
+    Recipe,
+    RecipeIngredient,
+    Tag
+)
 
 
 class IngredientInlineAdmin(admin.StackedInline):
+    """
+    Редактор админ-панели.
+    Добавляет связанные поля из модели Ingredient при создании рецепта.
+    """
     model = RecipeIngredient
     extra = 2
     verbose_name = 'Ингредиент'
@@ -12,6 +22,9 @@ class IngredientInlineAdmin(admin.StackedInline):
 
 
 class RecipeAdmin(admin.ModelAdmin):
+    """
+    Настройка админ-панели модели Recipe.
+    """
     list_display = [
         'name',
         'author',
@@ -25,10 +38,16 @@ class RecipeAdmin(admin.ModelAdmin):
     inlines = [IngredientInlineAdmin]
 
     def get_count_favorite(self, obj):
+        """
+        Метод для подсчета количества добавлений в избранное рецепта.
+        """
         return obj.favorite_recipe.count()
 
 
 class IngredientAdmin(admin.ModelAdmin):
+    """
+     Настройка админ-панели модели Ingredient.
+    """
     list_display = [
         'name',
         'measurement_unit'

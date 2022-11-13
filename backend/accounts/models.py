@@ -6,6 +6,9 @@ from .validators import UsernameValidator
 
 
 class User(AbstractUser):
+    """
+    Кастомная модель User.
+    """
     username_validator = UsernameValidator()
 
     username = models.CharField(
@@ -44,6 +47,9 @@ class User(AbstractUser):
 
 
 class Follow(models.Model):
+    """
+    Модель с подписками.
+    """
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -63,3 +69,6 @@ class Follow(models.Model):
             fields=('user', 'author'),
             name='unique_user_author',
         ),)
+
+    def __str__(self):
+        return f'{self.user.username} подписался на {self.author.username}'

@@ -4,6 +4,9 @@ from recipes.models import Recipe
 
 
 class RecipeFilter(FilterSet):
+    """
+    Фильтрация рецептов при передаче параметров в запросе.
+    """
     is_favorited = filters.BooleanFilter(
         method='get_is_favorited'
     )

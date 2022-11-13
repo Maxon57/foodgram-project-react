@@ -6,6 +6,9 @@ User = get_user_model()
 
 
 class Tag(models.Model):
+    """
+    Модель с тегами к рецептам.
+    """
     name = models.CharField(
         verbose_name='Название',
         max_length=150,
@@ -32,6 +35,9 @@ class Tag(models.Model):
 
 
 class Ingredient(models.Model):
+    """
+    Модель с ингредиентами к рецептам.
+    """
     name = models.CharField(
         verbose_name='Название продукта',
         max_length=150,
@@ -52,6 +58,9 @@ class Ingredient(models.Model):
 
 
 class Recipe(models.Model):
+    """
+    Модель с рецептами.
+    """
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -101,15 +110,21 @@ class Recipe(models.Model):
 
 
 class RecipeIngredient(models.Model):
+    """
+    Промежуточная модель многие ко многим
+    для поля ingredients модели Recipe.
+    """
     recipe = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
         related_name='recipe_ingredient',
+        verbose_name='Рецепт'
     )
     ingredient = models.ForeignKey(
         Ingredient,
         on_delete=models.CASCADE,
         related_name='ingredient_recipe',
+        verbose_name='Ингредиент'
     )
     amount = models.PositiveSmallIntegerField(
         validators=[
@@ -123,12 +138,21 @@ class RecipeIngredient(models.Model):
 
     class Meta:
         db_table = 'RecipeIngredient'
+        constraints = (
+            models.UniqueConstraint(
+                fields=('recipe', 'ingredient'),
+                name='unique_recipe_ingredient',
+            ),
+        )
 
     def __str__(self):
         return f'{self.recipe}: {self.ingredient} - {self.amount}'
 
 
 class Favorite(models.Model):
+    """
+    Модель для избранных рецептов.
+    """
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -159,6 +183,9 @@ class Favorite(models.Model):
 
 
 class Purchase(models.Model):
+    """
+    Модель со списком рецептов.
+    """
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,

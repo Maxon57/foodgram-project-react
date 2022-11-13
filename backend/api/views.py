@@ -13,7 +13,6 @@ from rest_framework.viewsets import GenericViewSet, ModelViewSet
 from accounts.models import Follow
 from recipes.models import (Favorite, Ingredient, Purchase, Recipe,
                             RecipeIngredient, Tag)
-
 from .filters import RecipeFilter
 from .permissions import CustomerAccessPermission
 from .serializers import (FavoriteSerializer, FollowPostSerializer,
@@ -28,13 +27,16 @@ class UsersViewSet(mixins.ListModelMixin,
                    mixins.CreateModelMixin,
                    mixins.RetrieveModelMixin,
                    GenericViewSet):
+    """
+    Контроллер для обработки ресурса /users/.
+    """
     filter_backends = [DjangoFilterBackend]
 
     def get_queryset(self):
         if self.action == 'subscriptions':
-            subscriptions = self.request.user.follower.all()
+            subscriptions = self.request.user.follower.values('author')
             return User.objects.filter(
-                pk__in=[item.author.pk for item in subscriptions]
+                pk__in=[pk['author'] for pk in subscriptions]
             )
         return User.objects.order_by('id').all()
 
@@ -113,6 +115,9 @@ class UsersViewSet(mixins.ListModelMixin,
 class TagViewSet(mixins.ListModelMixin,
                  mixins.RetrieveModelMixin,
                  GenericViewSet):
+    """
+    Контроллер для обработки ресурса /tags/.
+    """
     serializer_class = TagSerializer
     queryset = Tag.objects.all()
     pagination_class = None
@@ -121,6 +126,9 @@ class TagViewSet(mixins.ListModelMixin,
 class IngredientViewSet(mixins.ListModelMixin,
                         mixins.RetrieveModelMixin,
                         GenericViewSet):
+    """
+    Контроллер для обработки ресурса /ingredients/.
+    """
     serializer_class = IngredientSerializer
     queryset = Ingredient.objects.all()
     filter_backends = [filters.SearchFilter]
@@ -129,6 +137,9 @@ class IngredientViewSet(mixins.ListModelMixin,
 
 
 class RecipeViewSet(ModelViewSet):
+    """
+    Контроллер для обработки ресурса /recipes/.
+    """
     queryset = Recipe.objects.all()
     http_method_names = ['get', 'post', 'patch', 'delete', 'head']
     filter_backends = [DjangoFilterBackend]
@@ -158,41 +169,6 @@ class RecipeViewSet(ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
 
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        serializer.save()
-        serializer = RecipeViewSerializer(
-            instance=serializer.instance,
-            context={'request': self.request}
-        )
-        return Response(
-            data=serializer.data,
-            status=status.HTTP_201_CREATED,
-            headers=self.get_success_headers(serializer.data)
-        )
-
-    def update(self, request, *args, **kwargs):
-        partial = kwargs.pop('partial', False)
-        instance = self.get_object()
-        serializer = self.get_serializer(
-            instance,
-            data=request.data,
-            partial=partial
-        )
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        serializer = RecipeViewSerializer(
-            instance=serializer.instance,
-            context={'request': self.request}
-        )
-        return Response(
-            data=serializer.data,
-            status=status.HTTP_200_OK,
-            headers=self.get_success_headers(serializer.data)
-        )
-
     def get_recipe(self):
         return get_object_or_404(Recipe, pk=self.kwargs['pk'])
 
@@ -201,15 +177,15 @@ class RecipeViewSet(ModelViewSet):
         ingredients = RecipeIngredient.objects.filter(
             recipe__purchase_recipe__user=request.user
         ).values(
-            name=F('ingredients__name'),
-            measurement_unit=F('ingredients__measurement_unit')
-        ).annotate(amount=Sum('amount'))
+            name=F('ingredient__name'),
+            measurement_unit=F('ingredient__measurement_unit')
+        ).annotate(sum_ingredient=Sum('amount'))
 
         shopping_list = 'Игредиенты:\n\n'
         shopping_list += '\n'.join([
             f' - {ingredient["name"]}'
-            f' - ({ingredient["measurement_unit"]})'
-            f' - {ingredient["amount"]}'
+            f' - {ingredient["sum_ingredient"]}'
+            f'({ingredient["measurement_unit"]})'
             for ingredient in ingredients
         ])
         response = HttpResponse(
