@@ -9,7 +9,7 @@ load_dotenv()
 
 SECRET_KEY = os.getenv('SECRET_KEY')
 
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ['*']
 
@@ -60,20 +60,14 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'foodgram.wsgi.application'
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': os.getenv('DB_ENGINE', default='django.db.backends.postgresql'),
-#         'NAME': os.getenv('DB_NAME', default='default'),
-#         'USER': os.getenv('POSTGRES_USER', default='default'),
-#         'PASSWORD': os.getenv('POSTGRES_PASSWORD', default='default'),
-#         'HOST': os.getenv('DB_HOST', default='default'),
-#         'PORT': os.getenv('DB_PORT', default='default')
-#     }
-# }
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        'ENGINE': os.getenv('DB_ENGINE', default='django.db.backends.postgresql'),
+        'NAME': os.getenv('DB_NAME', default='default'),
+        'USER': os.getenv('POSTGRES_USER', default='default'),
+        'PASSWORD': os.getenv('POSTGRES_PASSWORD', default='default'),
+        'HOST': os.getenv('DB_HOST', default='default'),
+        'PORT': os.getenv('DB_PORT', default='default')
     }
 }
 
@@ -103,8 +97,8 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = 'static/'
-STATICFILES_DIRS = (os.path.join(BASE_DIR, 'static/'),)
-# STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+# STATICFILES_DIRS = (os.path.join(BASE_DIR, 'static/'),)
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 MEDIA_URL = 'media/'
 MEDIA_ROOT = (os.path.join(BASE_DIR, 'media'))

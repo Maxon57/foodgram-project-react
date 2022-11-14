@@ -18,7 +18,7 @@ def drop_data():
 
 
 def open_file_json(file: str) -> List[dict]:
-    path = os.path.join('static/data/', file + '.json')
+    path = os.path.join('data/', file + '.json')
     try:
         with open(path, 'r', encoding='UTF-8') as f:
             return json.load(f)
