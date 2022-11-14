@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
+from rest_framework.validators import UniqueTogetherValidator
 
 from accounts.models import Follow
 from api.serializers_fields import AmountField, Base64ImageField
@@ -195,6 +196,16 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
             instance,
             context={'request': self.context.get('request')}
         ).data
+
+    def validate_ingredients(self, ingredients):
+        unique_ingredients = []
+        for ingredient in ingredients:
+            if ingredient in unique_ingredients:
+                raise serializers.ValidationError(
+                    'Ингредиент не может повторяться!'
+                )
+            unique_ingredients.append(ingredient)
+        return ingredients
 
 
 class RecipeSerializer(serializers.ModelSerializer):
