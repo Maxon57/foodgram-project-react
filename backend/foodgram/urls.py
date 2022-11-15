@@ -10,7 +10,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path(
         'redoc/',
-        TemplateView.as_view(template_name='../../foodgram-project-react/backend/api/../../../docs/redoc.html'),
+        TemplateView.as_view(template_name='../../docs/redoc.html'),
         name='redoc'
     ),
 ]

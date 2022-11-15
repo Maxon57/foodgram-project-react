@@ -13,7 +13,7 @@ from rest_framework.viewsets import GenericViewSet, ModelViewSet
 from accounts.models import Follow
 from recipes.models import (Favorite, Ingredient, Purchase, Recipe,
                             RecipeIngredient, Tag)
-from .filters import RecipeFilter
+from .filters import RecipeFilter, IngredientFilter
 from .permissions import CustomerAccessPermission
 from .serializers import (FavoriteSerializer, FollowPostSerializer,
                           FollowSerializer, IngredientSerializer,
@@ -131,8 +131,9 @@ class IngredientViewSet(mixins.ListModelMixin,
     """
     serializer_class = IngredientSerializer
     queryset = Ingredient.objects.all()
-    filter_backends = [filters.SearchFilter]
-    search_fields = ['name']
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = IngredientFilter
+    search_fields = ('^name',)
     pagination_class = None
 
 
