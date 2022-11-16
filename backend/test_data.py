@@ -38,7 +38,9 @@ def main():
     try:
         for num in range(len(data_models)):
             data_models[num].objects.bulk_create([
-                data_models[num](**data) for data in open_file_json(data_files[num])
+                data_models[num](**data) for data in open_file_json(
+                    data_files[num]
+                )
             ])
     except Exception as err:
         drop_data()
