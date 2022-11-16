@@ -78,8 +78,11 @@ class UsersViewSet(mixins.ListModelMixin,
 
     @action(methods=['GET'], detail=False)
     def subscriptions(self, request, *args, **kwargs):
-        serializer = self.get_serializer(self.get_queryset(), many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        serializer = self.get_serializer(
+            self.paginate_queryset(self.get_queryset()),
+            many=True
+        )
+        return self.get_paginated_response(serializer.data)
 
     @action(methods=['POST'], detail=True)
     def subscribe(self, request, *args, **kwargs):
