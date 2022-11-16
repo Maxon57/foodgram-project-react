@@ -15,10 +15,12 @@ from rest_framework.viewsets import GenericViewSet, ModelViewSet
 
 from .filters import IngredientFilter, RecipeFilter
 from .permissions import CustomerAccessPermission
-from .serializers import (FavoriteSerializer, FollowPostSerializer,
-                          FollowSerializer, IngredientSerializer,
-                          PurchaseSerializer, RecipeCreateSerializer,
-                          RecipeViewSerializer, TagSerializer, UsersSerializer)
+from .serializers import (
+    FavoriteSerializer, FollowPostSerializer,
+    FollowSerializer, IngredientSerializer,
+    PurchaseSerializer, RecipeCreateSerializer,
+    RecipeViewSerializer, TagSerializer, UsersSerializer
+)
 
 User = get_user_model()
 
