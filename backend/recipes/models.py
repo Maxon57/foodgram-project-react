@@ -91,7 +91,7 @@ class Recipe(models.Model):
             validators.MinValueValidator
             (
                 1, message='Введите значение больше 1'
-             )
+            )
         ]
     )
     pub_date = models.DateTimeField(
