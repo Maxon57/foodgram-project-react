@@ -1,13 +1,8 @@
+from api.views import (IngredientViewSet, RecipeViewSet, TagViewSet,
+                       UsersViewSet)
 from django.urls import include, path, re_path
 from djoser import views
 from rest_framework import routers
-
-from api.views import (
-    IngredientViewSet,
-    RecipeViewSet,
-    TagViewSet,
-    UsersViewSet
-)
 
 router = routers.DefaultRouter()
 router.register(r'users', UsersViewSet, basename='users')

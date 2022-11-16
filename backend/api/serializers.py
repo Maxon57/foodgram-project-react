@@ -1,17 +1,10 @@
-from django.contrib.auth import get_user_model
-from django.shortcuts import get_object_or_404
-from rest_framework import serializers
-
 from accounts.models import Follow
 from api.serializers_fields import AmountField, Base64ImageField
-from recipes.models import (
-    Favorite,
-    Ingredient,
-    Purchase,
-    Recipe,
-    RecipeIngredient,
-    Tag
-)
+from django.contrib.auth import get_user_model
+from django.shortcuts import get_object_or_404
+from recipes.models import (Favorite, Ingredient, Purchase, Recipe,
+                            RecipeIngredient, Tag)
+from rest_framework import serializers
 
 User = get_user_model()
 
