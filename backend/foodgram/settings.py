@@ -1,11 +1,7 @@
 import os
 from pathlib import Path
 
-from dotenv import load_dotenv
-
 BASE_DIR = Path(__file__).resolve().parent.parent
-
-load_dotenv()
 
 SECRET_KEY = os.getenv(
     'SECRET_KEY',
@@ -14,7 +10,7 @@ SECRET_KEY = os.getenv(
 
 DEBUG = False
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['51.250.30.185', 'localhost', 'food-gram.ddns.net']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
