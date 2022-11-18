@@ -8,9 +8,9 @@ SECRET_KEY = os.getenv(
     default='django-insecure-7+^sikq9#ls7va5q$!@6l#&7i#pw!k1q2e!ax1&ws=gmucmqw='
 )
 
-DEBUG = False
+DEBUG = True
 
-ALLOWED_HOSTS = ['51.250.30.185', 'localhost', 'food-gram.ddns.net']
+ALLOWED_HOSTS = ['*']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -68,6 +68,7 @@ DATABASES = {
         'PORT': os.getenv('DB_PORT', default='5432')
     }
 }
+
 
 AUTH_PASSWORD_VALIDATORS = [
     {
