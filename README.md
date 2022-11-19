@@ -1,5 +1,6 @@
 # Foodgram_project
 ![workflow](https://github.com/hellon048/foodgram-project-react/actions/workflows/foodgram_workflow.yml/badge.svg)
+
 ***
 <details>
     <summary style="font-size: 16pt; font-weight: bold">Описание</summary>
